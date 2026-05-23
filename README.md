@@ -30,11 +30,73 @@ The core system design segments public traffic orchestration away from runtime c
 
 ---
 
+## 🔄 Distributed RPC Execution Flow
+
+To achieve structural decoupling, requests follow a strict sequential path across the multi-tier private network mesh:
+
+```text
+[Public Client] 
+       │
+       ▼ (HTTP POST /infer)
+┌────────────────────────────────────────┐
+│ VM 1: Public Gateway (10.0.1.202)      │
+└────────────────────────────────────────┘
+       │
+       ▼ (Internal Private Proxy Routing)
+┌────────────────────────────────────────┐
+│ VM 2: TypeScript Coordinator (10.0.2.4) │
+└────────────────────────────────────────┘
+       │
+       ▼ (Encrypted RPC Dispatch Thread)
+┌────────────────────────────────────────┐
+│ VM 3: Python SLM Worker (10.0.2.169)   │
+└────────────────────────────────────────┘
+```
+
+### Execution Flow Stages
+
+* **Edge Ingress:** The perimeter API Gateway on VM 1 receives the external JSON HTTP payload.
+* **Cluster Forwarding:** VM 1 proxies the request across the internal private subnet boundary directly to the TypeScript Pipeline Coordinator on VM 2.
+* **RPC Task Dispatch:** The TypeScript worker serializes the payload and issues a remote procedure call (RPC) to the isolated Python worker on VM 3.
+* **SLM Computation:** The Python runtime intercepts the execution task, processes model inference through the local Small Language Model engine, and pipes the structured response back up the distributed network chain.
+
+---
+
+## 🚀 End-to-End API Inference Validation
+
+The public-facing edge gateway exposes model inference securely via a standardized JSON HTTP API interface. Use the following validation mapping to query the cluster:
+
+### Sample Request Profile
+
+Execute this command from any local terminal to test the end-to-end network chain:
+
+```bash
+curl -X POST http://18.215.186.158:8080/infer \
+     -H "Content-Type: application/json" \
+     -d '{"prompt": "Analyze core cluster state telemetry metrics."}'
+```
+
+### Expected JSON Response Structure
+
+```json
+{
+  "status": "success",
+  "node_execution_id": "tx-8942-cluster-mesh",
+  "inference_result": {
+    "model": "slm-quickstart-core",
+    "response": "Cluster state analysis completed successfully. Internal runtime communication lines stable over private mesh routing."
+  }
+}
+```
+
+---
+
 ## ⚙️ Process & Lifecycle Management
 
 Both backend cluster instances run decentralized, isolated service frameworks managed natively via system-level process supervisors. This guarantees high availability, automated crash recoveries, and runtime decoupling without external dependency overhead.
 
 ### 1. TypeScript Worker Configuration (`caller-worker.service`)
+
 Managed as an isolated background daemon utilizing native systemd resource mappings:
 
 ```ini
@@ -54,7 +116,8 @@ Restart=on-failure
 WantedBy=multi-user.target
 ```
 
-### 2. Python Inference Worker Configuration (inference-worker.service)
+### 2. Python Inference Worker Configuration (`inference-worker.service`)
+
 Monitored by the kernel process manager to enforce strict execution loop memory handling boundaries:
 
 ```ini
@@ -106,5 +169,5 @@ terraform apply -auto-approve
 
 Because the infrastructure intentionally enforces true zero-egress isolation on the backend tier, standard interactive package manager installs were natively restricted to preserve network integrity.
 
-- **Network Hygiene:** Workers possess no external public mappings, completely mitigating brute-force edge layer risks.
-- **Access Security:** Key-based cross-node communication is limited to internal SSH key fabrics forwarded over local proxy paths.
+* **Network Hygiene:** Workers possess no external public mappings, completely mitigating brute-force edge layer risks.
+* **Access Security:** Key-based cross-node communication is limited to internal SSH key fabrics forwarded over local proxy paths.
