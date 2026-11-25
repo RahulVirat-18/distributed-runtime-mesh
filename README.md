@@ -53,12 +53,7 @@ To achieve structural decoupling, requests follow a strict sequential path acros
 └────────────────────────────────────────┘
 ```
 
-### Execution Flow Stages
-
-* **Edge Ingress:** The perimeter API Gateway on VM 1 receives the external JSON HTTP payload.
-* **Cluster Forwarding:** VM 1 proxies the request across the internal private subnet boundary directly to the TypeScript Pipeline Coordinator on VM 2.
-* **RPC Task Dispatch:** The TypeScript worker serializes the payload and issues a remote procedure call (RPC) to the isolated Python worker on VM 3.
-* **SLM Computation:** The Python runtime intercepts the execution task, processes model inference through the local Small Language Model engine, and pipes the structured response back up the distributed network chain.
+ 
 
 ---
 
